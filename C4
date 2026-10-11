@@ -1,0 +1,345 @@
+-- C4 Bomba
+-- Solte 2 Bombas, Para Mapa Médio, Grande Ou Aberto.
+
+local Players = game:GetService("Players")
+
+if not _G.BombaDePuloExecuted then
+    _G.BombaDePuloExecuted = true
+
+    local Debris = game:GetService("Debris")
+    local LocalPlayer = Players.LocalPlayer
+    local Mouse = LocalPlayer:GetMouse()
+
+    local Config = {
+        Cooldown = 0.80,
+        CanUse = true,
+        MaxBombs = 2,
+        BombsThrown = 0
+    }
+
+    local SelectedTool = nil
+
+    local TRANSLATIONS = {
+        ["pt-br"] = {
+            Title = "Clique No Botão",
+            Instruction = "Para Usar, Equipe A Ferramenta, Pule E Clique Na Tela Antes De Cair.",
+            Button = "Certo"
+        },
+        ["pt"] = {
+            Title = "Clique No Botão",
+            Instruction = "Para Usar, Equipe A Ferramenta, Pule E Clique Na Tela Antes De Cair.",
+            Button = "Certo"
+        },
+        ["en-us"] = {
+            Title = "Click The Button",
+            Instruction = "To Use, Equip The Tool, Jump And Click The Screen Before Landing.",
+            Button = "Okay"
+        },
+        ["en"] = {
+            Title = "Click The Button",
+            Instruction = "To Use, Equip The Tool, Jump And Click The Screen Before Landing.",
+            Button = "Okay"
+        },
+        ["es-es"] = {
+            Title = "Haz Clic En El Botón",
+            Instruction = "Para Usar, Equipa La Herramienta, Salta Y Pulsa La Pantalla Antes De Caer.",
+            Button = "Vale"
+        },
+        ["es"] = {
+            Title = "Haz Clic En El Botón",
+            Instruction = "Para Usar, Equipa La Herramienta, Salta Y Pulsa La Pantalla Antes De Caer.",
+            Button = "Vale"
+        },
+        ["fr-fr"] = {
+            Title = "Cliquez Sur Le Bouton",
+            Instruction = "Équipez L'Outil, Sautez Et Cliquez Sur L'Écran Avant D'Atterrir.",
+            Button = "D'accord"
+        },
+        ["fr"] = {
+            Title = "Cliquez Sur Le Bouton",
+            Instruction = "Équipez L'Outil, Sautez Et Cliquez Sur L'Écran Avant D'Atterrir.",
+            Button = "D'accord"
+        },
+        ["de-de"] = {
+            Title = "Klicke Auf Den Knopf",
+            Instruction = "Rüste Das Werkzeug Aus, Springe Und Klicke Vor Der Landung Auf Den Bildschirm.",
+            Button = "Okay"
+        },
+        ["de"] = {
+            Title = "Klicke Auf Den Knopf",
+            Instruction = "Rüste Das Werkzeug Aus, Springe Und Klicke Vor Der Landung Auf Den Bildschirm.",
+            Button = "Okay"
+        },
+        ["ja-jp"] = {
+            Title = "ボタンをクリック",
+            Instruction = "使用するには、ツールを装備してジャンプし、着地する前に画面をクリックしてください。",
+            Button = "わかった"
+        },
+        ["ja"] = {
+            Title = "ボタンをクリック",
+            Instruction = "使用するには、ツールを装備してジャンプし、着地する前に画面をクリックしてください。",
+            Button = "わかった"
+        },
+        ["ko-kr"] = {
+            Title = "버튼을 클릭하세요",
+            Instruction = "사용하려면 도구를 장착하고 점프한 다음 착지하기 전에 화면을 클릭하세요.",
+            Button = "알겠어요"
+        },
+        ["ko"] = {
+            Title = "버튼을 클릭하세요",
+            Instruction = "사용하려면 도구를 장착하고 점프한 다음 착지하기 전에 화면을 클릭하세요.",
+            Button = "알겠어요"
+        },
+        ["it-it"] = {
+            Title = "Clicca Il Pulsante",
+            Instruction = "Equipaggia Lo Strumento, Salta E Clicca Sullo Schermo Prima Di Atterrare.",
+            Button = "Va Bene"
+        },
+        ["it"] = {
+            Title = "Clicca Il Pulsante",
+            Instruction = "Equipaggia Lo Strumento, Salta E Clicca Sullo Schermo Prima Di Atterrare.",
+            Button = "Va Bene"
+        },
+        ["zh-cn"] = {
+            Title = "点击按钮",
+            Instruction = "使用时，装备工具，跳跃并在落地前点击屏幕。",
+            Button = "好的"
+        },
+        ["zh"] = {
+            Title = "点击按钮",
+            Instruction = "使用时，装备工具，跳跃并在落地前点击屏幕。",
+            Button = "好的"
+        },
+        ["fil-ph"] = {
+            Title = "Pindutin Ang Button",
+            Instruction = "Para Gamitin, Equipin Ang Tool, Tumalon At Pindutin Ang Screen Bago Lumapag.",
+            Button = "Sige"
+        },
+        ["fil"] = {
+            Title = "Pindutin Ang Button",
+            Instruction = "Para Gamitin, Equipin Ang Tool, Tumalon At Pindutin Ang Screen Bago Lumapag.",
+            Button = "Sige"
+        }
+    }
+
+    local function GetTranslation()
+        local locale = string.lower(LocalPlayer.LocaleId)
+        return TRANSLATIONS[locale]
+            or TRANSLATIONS[string.split(locale, "-")[1]]
+            or TRANSLATIONS["en-us"]
+    end
+
+    local function BuildBomb()
+        local Main = Instance.new("Part")
+        Main.Name = "Handle"
+        Main.Size = Vector3.new(4, 1.5, 3)
+        Main.Color = Color3.fromRGB(255, 180, 50)
+        Main.Material = Enum.Material.Metal
+        Main.CanCollide = false
+        Main.Massless = true
+        Main.Anchored = false
+
+        local Mesh = Instance.new("SpecialMesh")
+        Mesh.MeshType = Enum.MeshType.FileMesh
+        Mesh.MeshId = "rbxassetid://104516854"
+        Mesh.TextureId = "rbxassetid://104516981"
+        Mesh.Scale = Vector3.new(1.5, 1.5, 1.5)
+        Mesh.Parent = Main
+
+        return Main
+    end
+
+    local function GetGroundDistance(hrp)
+        local rayParams = RaycastParams.new()
+        rayParams.FilterType = Enum.RaycastFilterType.Exclude
+        rayParams.FilterDescendantsInstances = { LocalPlayer.Character }
+
+        local result = workspace:Raycast(hrp.Position, Vector3.new(0, -500, 0), rayParams)
+
+        if result then
+            return (hrp.Position - result.Position).Magnitude
+        end
+
+        return math.huge
+    end
+
+    local function HasC4Equipped()
+        local Character = LocalPlayer.Character
+        if not Character then
+            return false
+        end
+        return Character:FindFirstChild("C4") ~= nil
+    end
+
+    local function ThrowBomb()
+        if not Config.CanUse then
+            return
+        end
+
+        if not HasC4Equipped() then
+            return
+        end
+
+        local Character = LocalPlayer.Character
+        local hrp = Character and Character:FindFirstChild("HumanoidRootPart")
+        local humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+
+        if not hrp or not humanoid then
+            return
+        end
+
+        if humanoid.FloorMaterial ~= Enum.Material.Air then
+            return
+        end
+
+        if GetGroundDistance(hrp) < 6.4 then
+            return
+        end
+
+        local dropped = BuildBomb()
+        dropped.CanCollide = true
+        dropped.Massless = false
+        dropped.CFrame = hrp.CFrame * CFrame.new(0, -3.2, 0)
+        dropped.Parent = workspace
+
+        local direction = Mouse.Hit.Position - hrp.Position
+
+        if direction.Magnitude > 0 then
+            local bv = Instance.new("BodyVelocity")
+            bv.MaxForce = Vector3.new(100000, 100000, 100000)
+            bv.Velocity = direction.Unit * 25 + Vector3.new(0, 35, 0)
+            bv.Parent = dropped
+            Debris:AddItem(bv, 0.1)
+        end
+
+        Debris:AddItem(dropped, 0.4)
+
+        Config.BombsThrown += 1
+
+        if Config.BombsThrown >= Config.MaxBombs then
+            Config.CanUse = false
+
+            task.delay(Config.Cooldown, function()
+                Config.BombsThrown = 0
+                Config.CanUse = true
+            end)
+        end
+    end
+
+    -- Hook global do mouse: dispara mesmo com 2 tools equipadas
+    Mouse.Button1Down:Connect(function()
+        ThrowBomb()
+    end)
+
+    local function GiveTool()
+        local Backpack = LocalPlayer:WaitForChild("Backpack")
+        local Character = LocalPlayer.Character
+
+        if Backpack:FindFirstChild("C4")
+            or (Character and Character:FindFirstChild("C4")) then
+            return
+        end
+
+        local Tool = Instance.new("Tool")
+        Tool.Name = "C4"
+        Tool.TextureId = "rbxassetid://17439567603"
+        Tool.RequiresHandle = true
+        Tool.CanBeDropped = false
+        Tool.Grip = CFrame.new(0, -0.2, 0.2)
+            * CFrame.Angles(0, math.rad(180), 0)
+
+        BuildBomb().Parent = Tool
+
+        Tool.Parent = Backpack
+    end
+
+    local gui2 = Instance.new("ScreenGui")
+    gui2.Name = "ConfirmarC4"
+    gui2.ResetOnSpawn = false
+    gui2.DisplayOrder = 999
+
+    local success2 = pcall(function()
+        gui2.Parent = game:GetService("CoreGui")
+    end)
+
+    if not success2 or not gui2.Parent then
+        gui2.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    end
+
+    local translation = GetTranslation()
+
+    local frame2 = Instance.new("Frame")
+    frame2.Size = UDim2.fromOffset(260, 160)
+    frame2.Position = UDim2.new(0.5, -130, 0.5, -80)
+    frame2.BackgroundColor3 = Color3.fromRGB(65, 0, 12)
+    frame2.BorderSizePixel = 0
+    frame2.Parent = gui2
+
+    Instance.new("UICorner", frame2).CornerRadius = UDim.new(0, 12)
+
+    local title2 = Instance.new("TextLabel")
+    title2.Size = UDim2.new(1, -12, 0, 32)
+    title2.Position = UDim2.fromOffset(6, 5)
+    title2.BackgroundTransparency = 1
+    title2.Text = translation.Title
+    title2.TextColor3 = Color3.new(1, 1, 1)
+    title2.Font = Enum.Font.GothamBold
+    title2.TextSize = 16
+    title2.TextWrapped = true
+    title2.Parent = frame2
+
+    local instruction2 = Instance.new("TextLabel")
+    instruction2.Size = UDim2.new(1, -20, 0, 55)
+    instruction2.Position = UDim2.fromOffset(10, 38)
+    instruction2.BackgroundTransparency = 1
+    instruction2.Text = translation.Instruction
+    instruction2.TextColor3 = Color3.new(1, 1, 1)
+    instruction2.Font = Enum.Font.Gotham
+    instruction2.TextSize = 12
+    instruction2.TextWrapped = true
+    instruction2.Parent = frame2
+
+    local button2 = Instance.new("TextButton")
+    button2.Size = UDim2.fromOffset(175, 36)
+    button2.Position = UDim2.fromOffset(12, 98)
+    button2.BackgroundColor3 = Color3.fromRGB(145, 12, 35)
+    button2.BorderSizePixel = 0
+    button2.Text = translation.Button
+    button2.TextColor3 = Color3.new(1, 1, 1)
+    button2.Font = Enum.Font.GothamBold
+    button2.TextSize = 14
+    button2.Parent = frame2
+
+    Instance.new("UICorner", button2).CornerRadius = UDim.new(0, 7)
+
+    local image2 = Instance.new("ImageLabel")
+    image2.Size = UDim2.fromOffset(36, 36)
+    image2.Position = UDim2.fromOffset(198, 98)
+    image2.BackgroundTransparency = 1
+    image2.BorderSizePixel = 0
+    image2.Image = "rbxassetid://17439567603"
+    image2.ScaleType = Enum.ScaleType.Fit
+    image2.Parent = frame2
+
+    Instance.new("UICorner", image2).CornerRadius = UDim.new(0, 5)
+
+    button2.MouseButton1Click:Connect(function()
+        if SelectedTool then
+            return
+        end
+
+        SelectedTool = "C4"
+        gui2:Destroy()
+        GiveTool()
+    end)
+
+    LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(1)
+        Config.CanUse = true
+        Config.BombsThrown = 0
+
+        if SelectedTool then
+            GiveTool()
+        end
+    end)
+end
